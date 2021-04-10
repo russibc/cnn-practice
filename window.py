@@ -1,60 +1,54 @@
-import numpy as np
 
-from keras.models import Sequential
-from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
-from keras.layers.normalization import BatchNormalization
-from keras.preprocessing.image import ImageDataGenerator
-from keras.preprocessing import image
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QFileInfo
 from PyQt5.QtWidgets import QFileDialog
-
-# Feito com o dataset https://www.kaggle.com/iluvchicken/cheetah-jaguar-and-tiger
-# Código exemplo: https://keras.io/examples/vision/image_classification_from_scratch/
+from keras import models
+from keras.preprocessing import image
 
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(295, 387)
+        Dialog.resize(295, 301)
         self.txtPath1 = QtWidgets.QTextEdit(Dialog)
         self.txtPath1.setGeometry(QtCore.QRect(10, 40, 231, 31))
         self.txtPath1.setObjectName("txtPath1")
-        self.label_2 = QtWidgets.QLabel(Dialog)
-        self.label_2.setGeometry(QtCore.QRect(10, 90, 131, 19))
-        self.label_2.setObjectName("label_2")
-        self.txtPath2 = QtWidgets.QTextEdit(Dialog)
-        self.txtPath2.setGeometry(QtCore.QRect(10, 110, 231, 31))
-        self.txtPath2.setObjectName("txtPath2")
         self.label_3 = QtWidgets.QLabel(Dialog)
-        self.label_3.setGeometry(QtCore.QRect(10, 170, 66, 19))
+        self.label_3.setGeometry(QtCore.QRect(10, 80, 66, 19))
         self.label_3.setObjectName("label_3")
         self.txtPath3 = QtWidgets.QTextEdit(Dialog)
-        self.txtPath3.setGeometry(QtCore.QRect(10, 190, 231, 31))
+        self.txtPath3.setGeometry(QtCore.QRect(10, 100, 231, 31))
         self.txtPath3.setObjectName("txtPath3")
         self.btnSearchCNN = QtWidgets.QPushButton(
-            Dialog, clicked=lambda: self.searchCNN())
+            Dialog,  clicked=lambda: self.searchModel())
         self.btnSearchCNN.setGeometry(QtCore.QRect(240, 40, 31, 31))
         self.btnSearchCNN.setObjectName("btnSearchCNN")
-        self.btnSearchDirTest = QtWidgets.QPushButton(
-            Dialog, clicked=lambda: self.searchTestDir())
-        self.btnSearchDirTest.setGeometry(QtCore.QRect(240, 110, 31, 31))
-        self.btnSearchDirTest.setObjectName("btnSearchDirTest")
         self.btnSearchFile = QtWidgets.QPushButton(
-            Dialog, clicked=lambda: self.searchFile())
-        self.btnSearchFile.setGeometry(QtCore.QRect(240, 190, 31, 31))
+            Dialog,  clicked=lambda: self.searchTestFile())
+        self.btnSearchFile.setGeometry(QtCore.QRect(240, 100, 31, 31))
         self.btnSearchFile.setObjectName("btnSearchFile")
-        self.label_4 = QtWidgets.QLabel(Dialog)
-        self.label_4.setGeometry(QtCore.QRect(10, 300, 271, 71))
-        self.label_4.setObjectName("label_4")
         self.btnExecute = QtWidgets.QPushButton(
-            Dialog, clicked=lambda: self.execute())
-        self.btnExecute.setGeometry(QtCore.QRect(90, 230, 103, 36))
+            Dialog,  clicked=lambda: self.execute())
+        self.btnExecute.setGeometry(QtCore.QRect(170, 200, 103, 36))
         self.btnExecute.setObjectName("btnExecute")
         self.label_5 = QtWidgets.QLabel(Dialog)
         self.label_5.setGeometry(QtCore.QRect(10, 20, 131, 19))
         self.label_5.setObjectName("label_5")
+        self.txtResult = QtWidgets.QLabel(Dialog)
+        self.txtResult.setGeometry(QtCore.QRect(10, 250, 261, 41))
+        self.txtResult.setText("")
+        self.txtResult.setObjectName("txtResult")
+        self.txtPath3_2 = QtWidgets.QTextEdit(Dialog)
+        self.txtPath3_2.setGeometry(QtCore.QRect(10, 160, 231, 31))
+        self.txtPath3_2.setObjectName("txtPath3_2")
+        self.btnSearchFile_2 = QtWidgets.QPushButton(
+            Dialog,  clicked=lambda: self.searchWeights())
+        self.btnSearchFile_2.setGeometry(QtCore.QRect(240, 160, 31, 31))
+        self.btnSearchFile_2.setObjectName("btnSearchFile_2")
+        self.label_4 = QtWidgets.QLabel(Dialog)
+        self.label_4.setGeometry(QtCore.QRect(10, 140, 111, 19))
+        self.label_4.setObjectName("label_4")
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
@@ -63,84 +57,43 @@ class Ui_Dialog(object):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate(
             "Dialog", "Convolutional neural network"))
-        self.label_2.setText(_translate(
-            "Dialog", "<html><head/><body><p><span style=\" font-weight:600;\">Training Directory</span></p></body></html>"))
         self.label_3.setText(_translate(
             "Dialog", "<html><head/><body><p><span style=\" font-weight:600;\">Test File</span></p></body></html>"))
         self.btnSearchCNN.setText(_translate("Dialog", "..."))
-        self.btnSearchDirTest.setText(_translate("Dialog", "..."))
         self.btnSearchFile.setText(_translate("Dialog", "..."))
-        self.label_4.setText(_translate(
-            "Dialog", "<html><head/><body><p><br/></p></body></html>"))
         self.btnExecute.setText(_translate("Dialog", "Execute"))
         self.label_5.setText(_translate(
-            "Dialog", "<html><head/><body><p><span style=\" font-weight:600;\">CNN</span></p></body></html>"))
+            "Dialog", "<html><head/><body><p><span style=\" font-weight:600;\">Model</span></p></body></html>"))
+        self.btnSearchFile_2.setText(_translate("Dialog", "..."))
+        self.label_4.setText(_translate(
+            "Dialog", "<html><head/><body><p><span style=\" font-weight:600;\">Select Weights</span></p></body></html>"))
 
     def execute(self):
-        classificador = Sequential()
-        classificador.add(
-            Conv2D(32, (3, 3), input_shape=(64, 64, 3), activation='relu'))
-        classificador.add(BatchNormalization())
-        classificador.add(MaxPooling2D(pool_size=(2, 2)))
-        classificador.add(
-            Conv2D(32, (3, 3), input_shape=(64, 64, 3), activation='relu'))
-        classificador.add(BatchNormalization())
-        classificador.add(MaxPooling2D(pool_size=(2, 2)))
-        classificador.add(Flatten())
-        classificador.add(Dense(units=128, activation='relu'))
-        classificador.add(Dropout(0.2))
-        classificador.add(Dense(units=128, activation='relu'))
-        classificador.add(Dropout(0.2))
-        classificador.add(Dense(units=1, activation='sigmoid'))
-        classificador.compile(
-            optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+        self.model = models.load_model(self.dir_path)
+        self.model.load_weights(str(self.weights_file))
+        self.prediction = self.model.predict(
+            image.load_img(self.image, target_size=(64, 64)))
 
-        gerador_treinamento = ImageDataGenerator(rescale=1/255,
-                                                rotation_range=7,
-                                                horizontal_flip=True,
-                                                shear_range=0.2,
-                                                height_shift_range=0.07,
-                                                zoom_range=0.2)
-        gerador_teste = ImageDataGenerator(rescale=1./255)
+        if(self.prediction > 0.5):
+            self.txtResult.setText("It's hyena")
+        else:
+            self.txtResult.setText("It's cheetah")
 
-        base_treinamento = gerador_treinamento.flow_from_directory(dataset_training,
-                                                                target_size=(
-                                                                    64, 64),
-                                                                batch_size=32,
-                                                                class_mode='binary')
-
-        base_teste = gerador_teste.flow_from_directory('dataset/test_set',
-                                                    target_size=(64, 64),
-                                                    batch_size=32,
-                                                    class_mode='binary')
-
-        classificador.fit_generator(base_treinamento, steps_per_epoch=1800/32,
-                                    epochs=5, validation_data=base_teste,
-                                    validation_steps=200/32)
-
-        imagem_teste_hyena = image.load_img('dataset/test_set/hyena/hyena_025_val_resized.jpg',
-                                            target_size=(64, 64))
-
-        imagem_teste_hyena = image.img_to_array(imagem_teste_hyena)
-        imagem_teste_hyena /= 255
-        imagem_teste_hyena = np.expand_dims(imagem_teste_hyena, axis=0)
-
-        previsao = classificador.predict(imagem_teste_hyena)
-        previsao = (previsao > 0.5)
-
-   def searchCNN(self):
-        print('Button CNN pressed')
-
-    def searchFile(self):
+    def searchTestFile(self):
         filename = QFileDialog.getOpenFileName()
-        test__file = filename
-        self.txtPath3.setText(filename[0])
+        self.image = filename[0]
+        self.txtPath3.setText(self.image)
 
-    def searchTestDir(self):
-        folder = str(QFileDialog.getExistingDirectory(
+    def searchWeights(self):
+        weights_folder = QFileDialog.getOpenFileName()
+        self.weights_file = weights_folder[0]
+        self.txtPath3_2.setText(self.weights_file)
+
+    def searchModel(self):
+        self.dir_path = str(QFileDialog.getExistingDirectory(
             None, "Select Directory"))
-        dataset_training = folder
-        self.txtPath2.setText(folder)
+        self.txtPath1.setText(self.dir_path)
+
 
 if __name__ == "__main__":
     import sys
