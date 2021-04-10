@@ -5,9 +5,11 @@ from PyQt5.QtCore import QFileInfo
 from PyQt5.QtWidgets import QFileDialog
 from keras import models
 from keras.preprocessing import image
+import numpy as np
 
 
 class Ui_Dialog(object):
+
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(295, 301)
@@ -69,11 +71,19 @@ class Ui_Dialog(object):
             "Dialog", "<html><head/><body><p><span style=\" font-weight:600;\">Select Weights</span></p></body></html>"))
 
     def execute(self):
+        print('Executou')
         self.model = models.load_model(self.dir_path)
-        self.model.load_weights(str(self.weights_file))
-        self.prediction = self.model.predict(
-            image.load_img(self.image, target_size=(64, 64)))
 
+        if (self.weights_file):
+            self.model.load_weights(str(self.weights_file))
+
+        imageToPredict = image.load_img(self.image, target_size=(64, 64))
+        imageToPredict = image.img_to_array(imageToPredict)
+        imageToPredict /= 255
+        imageToPredict = np.expand_dims(imageToPredict, axis=0)
+
+        self.prediction = self.model.predict(imageToPredict)
+        print(self.prediction)
         if(self.prediction > 0.5):
             self.txtResult.setText("It's hyena")
         else:
